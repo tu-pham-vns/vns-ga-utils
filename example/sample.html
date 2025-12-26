@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock up landing page</title>
+    <script src="../dist/vns-ga-utils.js"></script>
+    <script src="./test.js" ></script>
+    <style>
+        /* --- Basic Styling (Expanded) --- */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background-color: #ffffff;
+            color: #333;
+            padding: 1em 5%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav a {
+            margin-left: 20px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        section {
+            padding: 4em 5%;
+            text-align: center;
+        }
+        .hero {
+            background-color: #007bff;
+            color: white;
+            padding: 6em 5%; /* Increased padding */
+        }
+        .hero h1 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+        }
+        .cta-button {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: background-color 0.3s;
+        }
+        .cta-button:hover {
+            background-color: #218838;
+        }
+        
+        /* Features Section */
+        .feature-item {
+            display: inline-block;
+            width: 30%;
+            margin: 0 1.5% 2em;
+            padding: 1em;
+            box-sizing: border-box;
+        }
+
+        /* New Section Styles */
+        .testimonials {
+            background-color: #e9ecef; /* Light gray background for contrast */
+        }
+        .testimonial-box {
+            background-color: white;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 1em auto;
+            max-width: 700px;
+            font-style: italic;
+            text-align: left;
+        }
+        .how-it-works .step {
+            margin: 2em 0;
+            padding: 1.5em;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            text-align: left;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .how-it-works .step-number {
+            font-size: 2em;
+            color: #007bff;
+            font-weight: bold;
+            margin-right: 1.5em;
+            flex-shrink: 0;
+        }
+        .faq {
+            text-align: left;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .faq h3 {
+            color: #007bff;
+            margin-top: 2em;
+        }
+        .final-cta {
+            background-color: #28a745; /* Green background */
+            color: white;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1.5em 5%;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>**Your Brand**</div>
+        <nav>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#testimonials">Reviews</a>
+            <a href="#faq">FAQ</a>
+            <a href="#cta" class="cta-button" style="padding: 5px 15px; font-size: 1em;">Sign Up</a>
+        </nav>
+    </header>
+
+    <section class="hero" data-internal-view="hero">
+        <h1>🚀 Unlock Peak Productivity Today</h1>
+        <p>The simplest, most powerful tool for managing your projects and scaling your success. Stop wasting time, start achieving.</p>
+        <a href="#cta" class="cta-button">Start Your 7-Day Free Trial</a>
+    </section>
+
+    <section id="features" class="features" data-internal-view="features">
+        <h2>What You Get With Our Platform</h2>
+        <div class="feature-item">
+            <h3>✅ Simple to Use</h3>
+            <p>An intuitive interface means zero learning curve. Get up and running in minutes, not hours.</p>
+        </div>
+        <div class="feature-item">
+            <h3>⚡ Blazing Fast</h3>
+            <p>Built with modern technology for maximum performance and instant results.</p>
+        </div>
+        <div class="feature-item">
+            <h3>🔒 Secure & Reliable</h3>
+            <p>Your data is always safe with our industry-leading encryption and security protocols.</p>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="how-it-works" data-internal-view="how-it-works">
+        <h2>It's Simple: Get Started in Three Steps</h2>
+        <div class="step">
+            <span class="step-number">1.</span>
+            <div>
+                <h3>Sign Up and Customize</h3>
+                <p>Create your free account and personalize your dashboard to match your workflow.</p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span>
+            <div>
+                <h3>Integrate Your Data</h3>
+                <p>Easily connect your existing tools and import your data in seconds.</p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span>
+            <div>
+                <h3>Launch and Monitor</h3>
+                <p>Start using our powerful features and watch your productivity soar instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials" class="testimonials" data-internal-view="testimonials">
+        <h2>Trusted by Thousands of Happy Customers</h2>
+        <div class="testimonial-box">
+            <p>"Switching to this tool was the best decision we made this year. It cut our reporting time by 50%!"</p>
+            <p>— **Sarah L.** | CEO, Tech Innovations</p>
+        </div>
+        <div class="testimonial-box">
+            <p>"The interface is clean and incredibly easy to navigate. Highly recommended for small teams."</p>
+            <p>— **Michael P.** | Project Manager, Design Co.</p>
+        </div>
+    </section>
+    
+    <section id="faq" class="faq" data-internal-view="faq">
+        <h2>Frequently Asked Questions</h2>
+        
+        <h3>Is there a free version?</h3>
+        <p>Yes! We offer a generous 7-day free trial that gives you access to all our Pro features. No credit card required to start.</p>
+        
+        <h3>What happens after the trial ends?</h3>
+        <p>You can choose one of our flexible pricing plans, or your account will automatically downgrade to our free Basic plan.</p>
+        
+        <h3>Is it compatible with mobile devices?</h3>
+        <p>Absolutely. Our platform is fully responsive and works seamlessly on all desktops, tablets, and smartphones.</p>
+    </section>
+
+    <section id="cta" class="final-cta" data-internal-view="cta">
+        <h2>Ready to Transform Your Workflow?</h2>
+        <p>Join over 10,000 users who are achieving more every day.</p>
+        <a href="#" class="cta-button" style="background-color: #007bff;">Get Started for Free Today</a>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Your Product Name. All rights reserved. | <a href="#" style="color: white;">Terms of Service</a> | <a href="#" style="color: white;">Privacy Policy</a></p>
+    </footer>
+
+</body>
+</html>

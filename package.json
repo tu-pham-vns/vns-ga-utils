@@ -1,0 +1,26 @@
+{
+  "name": "vns-ga-utils",
+  "version": "1.0.0",
+  "description": "VNS GA Utilities library",
+  "main": "dist/vns-ga-utils.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rollup -c",
+    "build:watch": "rollup -c --watch",
+    "dev": "rollup -c --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "@types/node": "^20.10.6",
+    "dotenv": "^17.2.3",
+    "rollup": "^4.9.0",
+    "rollup-plugin-codefend": "^3.2.1",
+    "rollup-plugin-javascript-obfuscator": "^1.0.4",
+    "tslib": "^2.8.1",
+    "typescript": "^5.3.3"
+  }
+}
