@@ -22,6 +22,7 @@ type SectionTrackedData = {
   minScrollDepth: number;
   maxScrollDepth: number;
   element: HTMLElement;
+  selector: string;
   id: string;
   _sentEventIds?: string[];
 };
@@ -67,13 +68,13 @@ export class VnsGaUtil {
     this.#sectionObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         const node = entry.target;
-        // due to the fact that multiple sections can have the same selector,
-        // we need to use a unique id to track them separately
-        const id = window.crypto.randomUUID();
         const selector = node.getAttribute("data-internal-view-selector");
-        node.setAttribute("data-internal-view-id", id);
         if (!selector) continue;
         if (entry.isIntersecting) {
+          // due to the fact that multiple sections can have the same selector,
+          // we need to use a unique id to track them separately
+          const id = window.crypto.randomUUID();
+          node.setAttribute("data-internal-view-id", id);
           const rect = node.getBoundingClientRect();
           // Calculate how much of the element is visible
           const elementTop = rect.top;
@@ -86,6 +87,7 @@ export class VnsGaUtil {
             minScrollDepth: ratioTop,
             maxScrollDepth: Math.min(ratioTop + entry.intersectionRatio * 100, 100),
             element: entry.target as HTMLElement,
+            selector: selector,
             id: id,
           });
           const settings = this.#selectorVisibilityMap.get(selector) ?? [];
@@ -120,7 +122,9 @@ export class VnsGaUtil {
             }
           }
         } else {
-          const tracked = this.#sectionMap.get(id);
+          const outId = node.getAttribute("data-internal-view-id");
+          if (!outId) continue;
+          const tracked = this.#sectionMap.get(outId);
           if (!tracked) continue;
           tracked.duration = Date.now() - tracked.start;
           const scrollDepth = tracked.maxScrollDepth - tracked.minScrollDepth;
@@ -131,7 +135,7 @@ export class VnsGaUtil {
             scroll_depth: scrollDepth,
           };
           this.#_sendInternalGAEvent(payload);
-          this.#sectionMap.delete(id);
+          this.#sectionMap.delete(outId);
         }
       }
     });
@@ -141,7 +145,7 @@ export class VnsGaUtil {
       lastSections.forEach((section) => {
         const duration = Date.now() - section.start;
         const scrollDepth = section.maxScrollDepth - section.minScrollDepth;
-        const selector = section.element.getAttribute("data-internal-view");
+        const selector = section.selector;
         const event = {
           event: "section_view",
           section: selector,
