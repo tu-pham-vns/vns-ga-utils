@@ -1,9 +1,21 @@
 {
-  "name": "vns-ga-utils",
+  "name": "@tu-pham-vns/vns-ga-utils",
   "version": "1.0.0",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "@tu-pham-vns:registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tu-pham-vns/vns-ga-utils.git"
+  },
   "description": "VNS GA Utilities library",
   "main": "dist/vns-ga-utils.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c",
     "build:watch": "rollup -c --watch",
