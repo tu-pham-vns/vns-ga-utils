@@ -1,15 +1,18 @@
 type SectionVisibilitySettings = {
   id: string;
   section: string;
-  selector: string; 
+  selector: string;
   scrollDepth: number;
   viewTime: number;
   customEvent: string;
 };
 
-type AddedSectionVisibilitySettings = Omit<SectionVisibilitySettings, "id" | "section">;
+type AddedSectionVisibilitySettings = Omit<
+  SectionVisibilitySettings,
+  "id" | "section"
+>;
 type TrackedSectionVisibilitySettings = SectionVisibilitySettings & {
-  _isSent?: boolean
+  _isSent?: boolean;
   _timeOut?: NodeJS.Timeout | null;
 };
 
@@ -20,6 +23,7 @@ type SectionTrackedData = {
   maxScrollDepth: number;
   element: HTMLElement;
   id: string;
+  _sentEventIds?: string[];
 };
 
 type CookieOptions = {
@@ -40,18 +44,17 @@ export class VnsGaUtil {
   #sectionObserver!: IntersectionObserver;
   #sectionMap: Map<string, SectionTrackedData> = new Map();
   #sectionVisibility: Map<string, TrackedSectionVisibilitySettings> = new Map();
-  #selectorVisibilityMap: Map<string, TrackedSectionVisibilitySettings[]> = new Map();
+  #selectorVisibilityMap: Map<string, TrackedSectionVisibilitySettings[]> =
+    new Map();
+  #isVisibilityTrackingInitialized: boolean = false;
 
   constructor() {
     this.#_initTracking();
-    this.#_initSectionVisibilityTracking();
-    this.#_initScrollDepthTracking();
   }
 
   #_initTracking() {
-    const thisScript = document.currentScript as HTMLScriptElement;
-    const src = thisScript.src;
-    const url = new URL(src);
+    const metaUrl = import.meta.url;
+    const url = new URL(metaUrl);
     const trackingId = url.searchParams.get("GID");
     if (!trackingId) {
       console.warn("Internal GA: No tracking ID found");
@@ -67,20 +70,57 @@ export class VnsGaUtil {
         // due to the fact that multiple sections can have the same selector,
         // we need to use a unique id to track them separately
         const id = window.crypto.randomUUID();
-        const selector = node.getAttribute("data-internal-view");
+        const selector = node.getAttribute("data-internal-view-selector");
         node.setAttribute("data-internal-view-id", id);
         if (!selector) continue;
         if (entry.isIntersecting) {
-          this.#sectionMap.set(selector, {
+          const rect = node.getBoundingClientRect();
+          // Calculate how much of the element is visible
+          const elementTop = rect.top;
+          const elementHeight = rect.height;
+          const visibleTop = Math.max(0, -elementTop);
+          const ratioTop = +((visibleTop / elementHeight) * 100).toFixed(2);
+          this.#sectionMap.set(id, {
             start: Date.now(),
             duration: 0,
-            minScrollDepth: entry.intersectionRatio * 100,
-            maxScrollDepth: entry.intersectionRatio * 100,
+            minScrollDepth: ratioTop,
+            maxScrollDepth: Math.min(ratioTop + entry.intersectionRatio * 100, 100),
             element: entry.target as HTMLElement,
             id: id,
           });
+          const settings = this.#selectorVisibilityMap.get(selector) ?? [];
+          for (const setting of settings) {
+            const settingId = setting.id;
+            if (setting.viewTime > 0) {
+              const timeout = setTimeout(() => {
+                const newSection = this.#sectionMap.get(id);
+                if (!newSection) return;
+
+                const sentIds = newSection._sentEventIds ?? [];
+                if (sentIds.includes(settingId)) return;
+
+                const scrollDepth =
+                  newSection.maxScrollDepth - newSection.minScrollDepth;
+                const settingScrollDepth = setting.scrollDepth;
+                if (scrollDepth < settingScrollDepth) return;
+
+                const event = setting.customEvent
+                  ? setting.customEvent
+                  : `view_${setting.section}`;
+                const payload = {
+                  event: event,
+                  section: setting.section,
+                  view_time: setting.viewTime,
+                  scroll_depth: scrollDepth,
+                };
+                this.#_sendInternalGAEvent(payload);
+                newSection._sentEventIds = [...sentIds, settingId];
+                this.#sectionMap.set(id, newSection);
+              }, setting.viewTime);
+            }
+          }
         } else {
-          const tracked = this.#sectionMap.get(selector);
+          const tracked = this.#sectionMap.get(id);
           if (!tracked) continue;
           tracked.duration = Date.now() - tracked.start;
           const scrollDepth = tracked.maxScrollDepth - tracked.minScrollDepth;
@@ -91,11 +131,11 @@ export class VnsGaUtil {
             scroll_depth: scrollDepth,
           };
           this.#_sendInternalGAEvent(payload);
-          this.#sectionMap.delete(selector);
+          this.#sectionMap.delete(id);
         }
       }
     });
-    
+
     const sendLastSection = () => {
       const lastSections = Array.from(this.#sectionMap.values());
       lastSections.forEach((section) => {
@@ -110,7 +150,7 @@ export class VnsGaUtil {
         };
         this.#_sendInternalGAEvent(event);
       });
-    }
+    };
 
     // have to bind this to the instance of the class because the function is called by window.
     window.addEventListener("beforeunload", sendLastSection.bind(this));
@@ -127,38 +167,70 @@ export class VnsGaUtil {
       const element = section.element;
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
+      const selector = section.element.getAttribute(
+        "data-internal-view-selector"
+      );
+      if (!selector) return;
 
       // Calculate how much of the element is visible
       const elementTop = rect.top;
       const elementBottom = rect.bottom;
       const elementHeight = rect.height;
 
+      const visibleTop = Math.max(0, -elementTop);
+      const ratioTop = +((visibleTop / elementHeight) * 100).toFixed(2);
+
       // If element is above viewport, calculate based on scroll position
-      let scrollDepth = 0;
+      let visibleRatio = 0;
 
       if (elementBottom < 0) {
         // Element is completely above viewport - scrolled past
-        scrollDepth = 100;
+        visibleRatio = 0;
       } else if (elementTop > viewportHeight) {
         // Element is completely below viewport - not reached yet
-        scrollDepth = 0;
+        visibleRatio = 0;
       } else {
         // Element is in or partially in viewport
-        const visibleTop = Math.max(0, -elementTop);
         const visibleBottom = Math.min(
           elementHeight,
           viewportHeight - elementTop
         );
         const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-        scrollDepth =
+        visibleRatio =
           elementHeight > 0
             ? Math.round((visibleHeight / elementHeight) * 100)
             : 0;
       }
 
-      section.minScrollDepth = Math.min(section.minScrollDepth, scrollDepth);
-      section.maxScrollDepth = Math.max(section.maxScrollDepth, scrollDepth);
-      this.#sectionMap.set(section.id, section);
+      const depth = Math.min(ratioTop + visibleRatio, 100);
+
+
+
+      section.minScrollDepth = Math.min(section.minScrollDepth, ratioTop);
+      section.maxScrollDepth = Math.max(section.maxScrollDepth, depth);
+      const now = Date.now();
+      const duration = now - section.start;
+      const sectionView = section.maxScrollDepth - section.minScrollDepth;
+      const settings = this.#selectorVisibilityMap.get(selector) ?? [];
+      const sentEventIds = section._sentEventIds ?? [];
+      for (const setting of settings) {
+        const settingId = setting.id;
+        if (sentEventIds.includes(settingId)) continue;
+        if (sectionView < setting.scrollDepth) continue;
+        if (duration < setting.viewTime) continue;
+        const event = setting.customEvent
+          ? setting.customEvent
+          : `view_${setting.section}`;
+        const payload = {
+          event: event,
+          section: setting.section,
+          view_time: duration,
+          scroll_depth: sectionView,
+        };
+        this.#_sendInternalGAEvent(payload);
+        section._sentEventIds = [...sentEventIds, settingId];
+        this.#sectionMap.set(section.id, section);
+      }
     };
 
     let ticking = false;
@@ -182,6 +254,13 @@ export class VnsGaUtil {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     onScroll();
+  }
+
+  #_initVisibilityTracking() {
+    if (this.#isVisibilityTrackingInitialized) return;
+    this.#_initSectionVisibilityTracking();
+    this.#_initScrollDepthTracking();
+    this.#isVisibilityTrackingInitialized = true;
   }
 
   #_sendInternalGAEvent(...args: any[]) {
@@ -211,7 +290,8 @@ export class VnsGaUtil {
     document.cookie = `${name}=${value}; ${expires}; path=${path}; domain=${domain}; sameSite=${sameSite}`;
   }
 
-  #_trackSectionView(section: HTMLElement) {
+  #_trackSectionView(section: HTMLElement, seletionString: string) {
+    section.setAttribute("data-internal-view-selector", seletionString);
     this.#sectionObserver.observe(section);
   }
 
@@ -230,7 +310,10 @@ export class VnsGaUtil {
     this.#selectorVisibilityMap.set(selector, newSelectorSettings);
   }
 
-  addSectionVisibility(section: string, settings: Partial<SectionVisibilitySettings>) {
+  addSectionVisibility(
+    section: string,
+    settings: Partial<SectionVisibilitySettings>
+  ) {
     const defaultSelector = `[data-internal-view="${section}"]`;
     const selector = settings.selector || defaultSelector;
     const id = window.crypto.randomUUID();
@@ -243,6 +326,7 @@ export class VnsGaUtil {
       customEvent: settings.customEvent || "",
     };
     const selectorSettings = this.#selectorVisibilityMap.get(selector) || [];
+    selectorSettings.push(_settings);
     this.#sectionVisibility.set(id, _settings);
     this.#selectorVisibilityMap.set(selector, selectorSettings);
     return id;
@@ -278,23 +362,36 @@ export class VnsGaUtil {
   }
 
   trackSectionVisibility() {
-    const sectionSelector = "[data-internal-view]";
+    this.#_initVisibilityTracking();
+
+    // Get all registered selectors from users
+    const getRegisteredSelectors = (): string[] => {
+      const selectors = Array.from(this.#selectorVisibilityMap.keys());
+      return selectors;
+    };
 
     const observer = new MutationObserver((mutations) => {
+      const registeredSelectors = getRegisteredSelectors();
+
       for (const m of mutations) {
         for (let i = 0; i < m.addedNodes.length; i++) {
           const node = m.addedNodes[i];
           if (!(node instanceof HTMLElement)) continue;
 
-          // Case 1: the node IS the section
-          if (node.matches?.(sectionSelector)) {
-            this.#_trackSectionView(node);
-          }
+          // Check against all registered selectors
+          for (const selector of registeredSelectors) {
+            // Case 1: the node IS the section
+            if (node.matches?.(selector)) {
+              this.#_trackSectionView(node, selector);
+            }
 
-          // Case 2: the section is inside the added node
-          node
-            .querySelectorAll?.(sectionSelector)
-            .forEach((section) => this.#_trackSectionView(section as HTMLElement));
+            // Case 2: the section is inside the added node
+            node
+              .querySelectorAll?.(selector)
+              .forEach((section) =>
+                this.#_trackSectionView(section as HTMLElement, selector)
+              );
+          }
         }
       }
     });
@@ -304,10 +401,15 @@ export class VnsGaUtil {
       subtree: true,
     });
 
-    // Initial scan
-    document
-      .querySelectorAll(sectionSelector)
-      .forEach((section) => this.#_trackSectionView(section as HTMLElement));
+    // Initial scan for all registered selectors
+    const initialSelectors = getRegisteredSelectors();
+    initialSelectors.forEach((selector) => {
+      document
+        .querySelectorAll(selector)
+        .forEach((section) =>
+          this.#_trackSectionView(section as HTMLElement, selector)
+        );
+    });
   }
 
   getVersion(): string {
