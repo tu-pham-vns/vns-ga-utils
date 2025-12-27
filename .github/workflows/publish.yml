@@ -24,10 +24,11 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@tu-pham-vns"
 
-      - name: Configure pnpm
-        run: |
-          echo "registry=https://npm.pkg.github.com" >> ~/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -43,6 +44,6 @@ jobs:
         shell: bash
 
       - name: Publish to GitHub Packages
+        run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm publish --access public
