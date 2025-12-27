@@ -4,9 +4,6 @@ on:
   release:
     types: [created]
   workflow_dispatch:
-  push:
-    branches:
-      - release/*
 
 permissions:
   contents: read
@@ -47,6 +44,6 @@ jobs:
         shell: bash
 
       - name: Publish to GitHub Packages
+        run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm publish --access public --no-git-checks
