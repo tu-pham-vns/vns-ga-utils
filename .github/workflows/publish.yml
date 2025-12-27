@@ -49,4 +49,4 @@ jobs:
       - name: Publish to GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm publish --access public
+        run: pnpm publish --access public --no-git-checks
