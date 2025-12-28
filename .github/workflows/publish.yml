@@ -85,7 +85,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm publish --access public --no-git-checks
-        
+
   publish-npmjs:
     needs: build
     runs-on: ubuntu-latest
@@ -110,6 +110,10 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Login to npmjs
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       - name: Publish to npmjs
         env:
