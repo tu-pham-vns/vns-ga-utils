@@ -1,9 +1,7 @@
 {
   "name": "@tu-pham-vns/vns-ga-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "@tu-pham-vns:registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "repository": {
