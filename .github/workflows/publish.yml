@@ -179,6 +179,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag: ${{ needs.create-tag.outputs.tag }}
+          tag_name: ${{ needs.create-tag.outputs.tag }}
           files: |
             dist/**
