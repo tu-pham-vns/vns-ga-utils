@@ -1,8 +1,6 @@
 name: Build and Publish to GitHub Packages
 
 on:
-  release:
-    types: [created]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +8,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-publish:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,8 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://npm.pkg.github.com
-          scope: "@tu-pham-vns"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -43,7 +39,152 @@ jobs:
           mkdir -p dist
         shell: bash
 
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Upload package files
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            package.json
+            README.md
+
+  create-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # REQUIRED for tagging
+
+      - name: Read version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Create git tag if not exists
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.email }}"
+
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Tag already exists"
+          else
+            git tag ${{ steps.version.outputs.tag }}
+            git push origin ${{ steps.version.outputs.tag }}
+          fi
+
+  publish-github:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@tu-pham-vns"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Publish to GitHub Packages
-        run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm publish --access public --no-git-checks
+
+  publish-npmjs:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Authenticate with npmjs
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npmjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --no-git-checks --provenance
+
+  publish-integrity:
+    needs: 
+      - build
+      - create-tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      
+      - name: Generate integrity
+        run: node generate-integrity.js
+
+      - name: Upload integrity artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: integrity
+          path: dist/integrity.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.create-tag.outputs.tag }}
+          preservePath: true
+          files: |
+            dist/**
+            README.md
+            package.json
