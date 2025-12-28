@@ -76,14 +76,14 @@ jobs:
           node-version: 20
           registry-url: https://npm.pkg.github.com
           scope: "@tu-pham-vns"
+          # GITHUB_TOKEN is automatically available, but explicitly pass it for clarity
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: Publish to GitHub Packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm publish --access public --no-git-checks
 
   publish-npmjs:
@@ -106,17 +106,13 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+          # Pass the token to setup-node so it configures .npmrc correctly
+          token: ${{ secrets.NPM_TOKEN }}
 
       - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Login to npmjs
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Publish to npmjs
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm publish --access public --no-git-checks
 
