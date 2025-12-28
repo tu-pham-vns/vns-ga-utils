@@ -159,6 +159,9 @@ jobs:
       - build
       - create-tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -182,3 +185,5 @@ jobs:
           tag_name: ${{ needs.create-tag.outputs.tag }}
           files: |
             dist/**
+            README.md
+            package.json
