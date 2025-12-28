@@ -151,6 +151,11 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: npm adduser
+        run: npm adduser
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Verify npm auth (debug)
         run: npm whoami
 
