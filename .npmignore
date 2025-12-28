@@ -1,5 +1,7 @@
 src/
 node_modules/
+.git/
 .github/
 *.log
 *.md
+.npmrc
